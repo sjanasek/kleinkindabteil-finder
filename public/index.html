@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kleinkindabteil-Finder</title>
+<style>
+  :root { --bg:#f6f4ef; --card:#fff; --ink:#1f2328; --muted:#6b7280; --ok:#1a7f4b; --okbg:#e6f6ec; --bad:#b4232c; --badbg:#fcebec; --warn:#8a6d00; --warnbg:#fff6d6; --accent:#ec0016; --line:#e5e1d8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#15171a; --card:#1f2226; --ink:#f1f1f1; --muted:#a3a9b3; --okbg:#143d27; --ok:#6fdc9a; --badbg:#4a1b1f; --bad:#ff8a90; --warnbg:#3d3410; --warn:#ffd766; --line:#33373d; } }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:1.6rem; margin:0 0 4px } h1 span { color:var(--accent) }
+  p.lead { color:var(--muted); margin:0 0 20px }
+  form { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; display:grid; gap:12px; grid-template-columns:repeat(6,1fr); }
+  label { display:flex; flex-direction:column; gap:4px; font-size:.85rem; color:var(--muted) }
+  input, select { font:inherit; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); width:100% }
+  .c3 { grid-column:span 3 } .c2 { grid-column:span 2 } .c6 { grid-column:span 6 }
+  button { grid-column:span 6; font:inherit; font-weight:600; padding:12px; border:0; border-radius:10px; background:var(--accent); color:#fff; cursor:pointer }
+  button:disabled { opacity:.6; cursor:wait }
+  @media (max-width:640px) { form { grid-template-columns:repeat(2,1fr) } .c3,.c2,.c6,button { grid-column:span 2 } }
+  #status { margin:16px 0; color:var(--muted) }
+  .card { background:var(--card); border:1px solid var(--line); border-left:6px solid var(--muted); border-radius:12px; padding:14px 16px; margin:12px 0 }
+  .card.ok { border-left-color:var(--ok) } .card.bad { border-left-color:var(--bad) } .card.unknown { border-left-color:var(--warn) }
+  .head { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline }
+  .time { font-size:1.25rem; font-weight:700 } .meta { color:var(--muted) }
+  .badge { font-size:.8rem; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:auto }
+  .ok .badge { background:var(--okbg); color:var(--ok) } .bad .badge { background:var(--badbg); color:var(--bad) } .unknown .badge { background:var(--warnbg); color:var(--warn) }
+  .leg { margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:.95rem }
+  .leg b { font-variant-numeric:tabular-nums }
+  .zone { display:inline-block; margin:6px 6px 0 0; padding:4px 10px; border-radius:8px; background:var(--bg); font-size:.9rem }
+  .zone.free { background:var(--okbg); color:var(--ok) } .zone.full { background:var(--badbg); color:var(--bad) }
+  .seats { font-size:.8rem; opacity:.85 }
+  .load { font-size:.8rem; color:var(--muted) }
+  a.book { display:inline-block; margin-top:12px; padding:9px 14px; border-radius:8px; background:var(--accent); color:#fff; text-decoration:none; font-weight:600; font-size:.95rem }
+  details { margin-top:16px; color:var(--muted); font-size:.85rem }
+</style>
+</head>
+<body>
+<main>
+  <h1>🚆 <span>Kleinkindabteil</span>-Finder</h1>
+  <p class="lead">Zeigt nur die ICE/IC-Verbindungen, in denen alle Reisenden (Erwachsene und Kinder) noch zusammen Platz im Kleinkindabteil finden.</p>
+  <form id="f">
+    <label class="c3">Von <input name="from" list="from-l" required placeholder="z. B. Berlin Hbf"><datalist id="from-l"></datalist></label>
+    <label class="c3">Nach <input name="to" list="to-l" required placeholder="z. B. München Hbf"><datalist id="to-l"></datalist></label>
+    <label class="c2">Datum <input name="date" type="date" required></label>
+    <label class="c2">Ab (Uhrzeit) <input name="time" type="time" value="08:00"></label>
+    <label class="c2">Zeitfenster <select name="pages"><option value="day">ganzer Tag</option><option value="1">nur ab Uhrzeit</option><option value="2">ab Uhrzeit, +1 Fenster</option><option value="3">ab Uhrzeit, +2 Fenster</option></select></label>
+    <label class="c2">Erwachsene <input name="adults" type="number" min="1" max="5" value="1"></label>
+    <label class="c2">Kinder (Alter, kommagetrennt) <input name="kids" value="2" placeholder="z. B. 1,4"></label>
+    <label class="c2">Anzeige <select name="showAll"><option value="0">nur passende Verbindungen</option><option value="1">alle Verbindungen</option></select></label>
+    <label class="c3">Max. Umstiege <select name="maxTransfers"><option value="">egal</option><option value="0">Direkt</option><option value="1">1</option><option value="2">2</option></select></label>
+    <label class="c3">Bedingung <select name="mode"><option value="all">jeder Fernverkehrszug muss frei haben</option><option value="any">mind. ein Fernverkehrszug</option></select></label>
+    <button id="go">Verbindungen prüfen</button>
+  </form>
+  <div id="status"></div>
+  <div id="out"></div>
+  <details><summary>Wie funktioniert das?</summary>
+    Verbindungen kommen aus dem Backend des DB Navigators. Für jeden ICE/IC/EC wird die grafische Sitzplatzanzeige mit dem Profil „Familie mit Kleinkind" abgerufen; aus dem Wagenplan werden die Plätze zwischen den Trennwänden des Kleinkindabteils ermittelt und mit dem Reservierungsstatus verglichen. Das ist eine Momentaufnahme ohne Gewähr, inoffiziell und ohne Buchung. Der Familienbereich ist die Ausweichoption, wenn das Abteil voll ist.
+  </details>
+</main>
+<script>
+const f = document.getElementById('f'), out = document.getElementById('out'), status = document.getElementById('status'), go = document.getElementById('go');
+f.date.value = new Date(Date.now() + 86400000).toISOString().slice(0,10);
+const syncTime = () => { f.time.disabled = f.pages.value === 'day'; };
+f.pages.addEventListener('change', syncTime);
+try { const s = JSON.parse(localStorage.getItem('kk-form')||'null'); if (s) for (const [k,v] of Object.entries(s)) if (f[k]) f[k].value = v; } catch {}
+syncTime();
+
+for (const name of ['from','to']) {
+  let t; f[name].addEventListener('input', () => { clearTimeout(t); t = setTimeout(async () => {
+    const q = f[name].value.trim(); if (q.length < 2) return;
+    const hits = await fetch('/api/stations?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => []);
+    document.getElementById(name + '-l').innerHTML = hits.map(h => `<option value="${esc(h.name)}">`).join('');
+  }, 250); });
+}
+
+const hhmm = iso => new Date(iso).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dur = s => `${Math.floor(s/3600)} h ${String(Math.floor(s%3600/60)).padStart(2,'0')} min`;
+
+f.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(f));
+  try { localStorage.setItem('kk-form', JSON.stringify(data)); } catch {}
+  out.innerHTML = ''; go.disabled = true; status.textContent = 'Suche Verbindungen …';
+  let total = 0, done = 0, need = 0;
+  try {
+    const res = await fetch('/api/search?' + new URLSearchParams(data));
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    while (true) {
+      const { value, done: end } = await reader.read(); if (end) break;
+      buf += dec.decode(value, { stream:true });
+      let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i+1); if (line.trim()) handle(JSON.parse(line)); }
+    }
+  } catch (err) { status.textContent = 'Fehler: ' + err.message; }
+  go.disabled = false;
+
+  function handle(ev) {
+    if (ev.type === 'error') { status.textContent = 'Fehler: ' + ev.message; return; }
+    if (ev.type === 'stations') status.textContent = `${ev.from.name} → ${ev.to.name}: suche Verbindungen …`;
+    if (ev.type === 'page') status.textContent = `Lade Zeitfenster ${ev.page} … (${ev.count} Verbindungen bisher)`;
+    if (ev.type === 'journeys') { total = ev.count; status.textContent = `${total} Verbindungen gefunden, prüfe Sitzpläne … (0/${total})`; }
+    if (ev.type === 'need') need = ev.minFree;
+    if (ev.type === 'checked') { done++; status.textContent = `Prüfe Sitzpläne … (${done}/${total}, gesucht: ${need} freie Plätze je Zug)`; if (ev.journey.ok || data.showAll === '1') render(ev.journey, ev.index); }
+    if (ev.type === 'done') {
+      const ok = ev.journeys.filter(j => j.ok).length;
+      status.textContent = ok ? `${ok} von ${ev.total} Verbindungen mit ${ev.minFree} freien Plätzen im Kleinkindabteil ✅` : `Keine der ${ev.total} Verbindungen hat ${ev.minFree} freie Plätze im Kleinkindabteil. Tipp: weitere Zeitfenster laden oder „alle Verbindungen" anzeigen (Familienbereich als Ausweichoption).`;
+      out.innerHTML = ''; ev.journeys.forEach((j, i) => render(j, i));
+    }
+  }
+  function render(j, idx) {
+    const cls = j.ok ? 'ok' : (j.unknown ? 'unknown' : 'bad');
+    const label = j.ok ? 'Kleinkindabteil frei' : (j.unknown ? 'Nicht prüfbar' : (j.hasLongDistance ? 'Kleinkindabteil voll' : 'Kein ICE/IC in der Verbindung'));
+    const legs = j.legs.map((leg, i) => {
+      const c = j.checks[i]; let zones = '';
+      if (c?.skipped) zones = /^(FLX|NJ|RJ|TGV|EN|D)$/.test(leg.product) ? '<span class="zone">Kein DB-Reservierungssystem – nicht prüfbar</span>' : '<span class="zone">Nahverkehr – keine Reservierung, Mehrzweckbereich nutzen</span>';
+      else if (c === null) zones = '<span class="zone">Kein Sitzplan abrufbar</span>';
+      else if (c?.error) zones = `<span class="zone">Fehler: ${esc(c.error)}</span>`;
+      else {
+        for (const w of c.coaches) {
+          if (w.kleinkind.total) zones += `<span class="zone ${w.kleinkind.free ? 'free' : 'full'}">👶 Wagen ${esc(w.number)} Kleinkindabteil: ${w.kleinkind.free}/${w.kleinkind.total} frei ${w.kleinkind.free ? `<span class="seats">(Platz ${w.kleinkind.seats.filter(s=>s.free).map(s=>esc(s.number)).join(', ')})</span>` : ''}</span>`;
+          if (w.familie.total) zones += `<span class="zone ${w.familie.free ? 'free' : 'full'}">👨‍👩‍👧 Wagen ${esc(w.number)} Familienbereich: ${w.familie.free}/${w.familie.total} frei</span>`;
+        }
+        if (!zones) zones = '<span class="zone">Kein Kleinkindabteil in diesem Zug</span>';
+        if (c.kinderwagen.length) zones += `<span class="zone">🛒 Kinderwagen: Wagen ${c.kinderwagen.map(esc).join(', ')}</span>`;
+      }
+      return `<div class="leg"><b>${esc(leg.name)}</b> ${hhmm(leg.departure)} ${esc(leg.from)}${leg.departurePlatform ? ` (Gl. ${esc(leg.departurePlatform)})` : ''} → ${hhmm(leg.arrival)} ${esc(leg.to)}${leg.load ? ` <span class="load">· ${esc(leg.load.text)}</span>` : ''}<br>${zones}</div>`;
+    }).join('');
+    const html = `<div class="card ${cls}" data-i="${idx}"><div class="head"><span class="time">${hhmm(j.departure)} → ${hhmm(j.arrival)}</span><span class="meta">${dur(j.duration)} · ${j.transfers === 0 ? 'direkt' : j.transfers + ' Umstieg' + (j.transfers > 1 ? 'e' : '')}${j.price != null ? ` · ab ${j.price.toFixed(2).replace('.', ',')} €` : ''}</span><span class="badge">${label}</span></div>${legs}${j.link ? `<a class="book" href="${esc(j.link)}" target="_blank" rel="noopener">Auf bahn.de öffnen &amp; Sitzplatz wählen →</a>` : ''}</div>`;
+    const existing = out.querySelector(`[data-i="${idx}"]`);
+    if (existing) existing.outerHTML = html; else out.insertAdjacentHTML('beforeend', html);
+  }
+});
+</script>
+</body>
+</html>
