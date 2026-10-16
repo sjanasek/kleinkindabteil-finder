@@ -52,6 +52,29 @@ Ausgabe pro Verbindung: ✅ Kleinkindabteil frei · ❌ voll · ❓ nicht prüfb
 (z. B. FlixTrain, kein Sitzplan). Pro Zug: Wagen, freie Plätze mit Platznummern,
 Familienbereich, Kinderwagen-Stellplatz, erwartete Auslastung.
 
+## iOS-App (SwiftUI)
+
+Im Ordner [`ios/KleinkindabteilFinder`](ios/KleinkindabteilFinder) liegt dieselbe
+Anwendung als native iPhone/iPad-App (SwiftUI, Swift 6, iOS 18+, keine Abhängigkeiten).
+
+```sh
+open ios/KleinkindabteilFinder/KleinkindabteilFinder.xcodeproj
+```
+
+- Gleiche Logik wie CLI/Web: Verbindungen, Sitzplatzanzeige mit Profil
+  „FamilieMitKleinkind“, Abteilerkennung aus dem Wagenplan, Buchungslink.
+- Unit-Tests (Swift Testing) für die Abteilerkennung: `⌘U` in Xcode.
+- Wichtig: Der DB-Edge filtert nach TLS-Fingerabdruck. Die App erzwingt darum
+  TLS 1.3 in der `URLSession` (siehe `DBClient.makeSession()`), sonst antwortet
+  `angebote/fahrplan` mit `OPS_BLOCKED`.
+- Vor dem App-Store-Upload: Bundle-ID und Team in den Target-Einstellungen
+  anpassen, Icon ggf. ersetzen (`Assets.xcassets/AppIcon`).
+
+Hinweis zur Veröffentlichung: Die App nutzt ein inoffizielles Backend der
+Deutschen Bahn. Apple kann das im Review beanstanden (Richtlinie 5.2.2, Inhalte
+Dritter ohne Erlaubnis), und die Bahn kann den Zugang jederzeit ändern oder
+sperren. Das Risiko trägt der Veröffentlichende.
+
 ## Wie es funktioniert
 
 1. `location/search` → Haltestellen-IDs.
